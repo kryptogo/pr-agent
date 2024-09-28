@@ -1,4 +1,3 @@
-import logging
 from collections import Counter
 from pathlib import Path
 from typing import List
@@ -6,7 +5,9 @@ from typing import List
 from git import Repo
 
 from pr_agent.config_loader import _find_repository_root, get_settings
-from pr_agent.git_providers.git_provider import EDIT_TYPE, FilePatchInfo, GitProvider
+from pr_agent.git_providers.git_provider import GitProvider
+from pr_agent.algo.types import EDIT_TYPE, FilePatchInfo
+from pr_agent.log import get_logger
 
 
 class PullRequestMimic:
@@ -49,14 +50,15 @@ class LocalGitProvider(GitProvider):
         """
         Prepare the repository for PR-mimic generation.
         """
-        logging.debug('Preparing repository for PR-mimic generation...')
+        get_logger().debug('Preparing repository for PR-mimic generation...')
         if self.repo.is_dirty():
             raise ValueError('The repository is not in a clean state. Please commit or stash pending changes.')
         if self.target_branch_name not in self.repo.heads:
             raise KeyError(f'Branch: {self.target_branch_name} does not exist')
 
     def is_supported(self, capability: str) -> bool:
-        if capability in ['get_issue_comments', 'create_inline_comment', 'publish_inline_comments', 'get_labels']:
+        if capability in ['get_issue_comments', 'create_inline_comment', 'publish_inline_comments', 'get_labels',
+                          'gfm_markdown']:
             return False
         return True
 
@@ -117,11 +119,8 @@ class LocalGitProvider(GitProvider):
             # Write the string to the file
             file.write(pr_comment)
 
-    def publish_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str):
+    def publish_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str, original_suggestion=None):
         raise NotImplementedError('Publishing inline comments is not implemented for the local git provider')
-
-    def create_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str):
-        raise NotImplementedError('Creating inline comments is not implemented for the local git provider')
 
     def publish_inline_comments(self, comments: list[dict]):
         raise NotImplementedError('Publishing inline comments is not implemented for the local git provider')
@@ -130,13 +129,16 @@ class LocalGitProvider(GitProvider):
                                 relevant_lines_start: int, relevant_lines_end: int):
         raise NotImplementedError('Publishing code suggestions is not implemented for the local git provider')
 
-    def publish_code_suggestions(self, code_suggestions: list):
+    def publish_code_suggestions(self, code_suggestions: list) -> bool:
         raise NotImplementedError('Publishing code suggestions is not implemented for the local git provider')
 
     def publish_labels(self, labels):
         pass  # Not applicable to the local git provider, but required by the interface
 
     def remove_initial_comment(self):
+        pass  # Not applicable to the local git provider, but required by the interface
+
+    def remove_comment(self, comment):
         pass  # Not applicable to the local git provider, but required by the interface
 
     def get_languages(self):
@@ -158,7 +160,7 @@ class LocalGitProvider(GitProvider):
     def get_user_id(self):
         return -1  # Not used anywhere for the local provider, but required by the interface
 
-    def get_pr_description(self):
+    def get_pr_description_full(self):
         commits_diff = list(self.repo.iter_commits(self.target_branch_name + '..HEAD'))
         # Get the commit messages and concatenate
         commit_messages = " ".join([commit.message for commit in commits_diff])
@@ -174,5 +176,5 @@ class LocalGitProvider(GitProvider):
     def get_issue_comments(self):
         raise NotImplementedError('Getting issue comments is not implemented for the local git provider')
 
-    def get_labels(self):
+    def get_pr_labels(self, update=False):
         raise NotImplementedError('Getting labels is not implemented for the local git provider')

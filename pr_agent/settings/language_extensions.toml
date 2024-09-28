@@ -44,6 +44,7 @@ default = [
     'ss',
     'svg',
     'tar',
+    'tgz',
     'tsv',
     'ttf',
     'war',
@@ -53,7 +54,8 @@ default = [
     'xz',
     'zip',
     'zst',
-    'snap'
+    'snap',
+    'lockb'
 ]
 extra = [
     'md',
@@ -61,6 +63,7 @@ extra = [
 ]
 
 [language_extension_map_org]
+"1C Enterprise" = ["*.bsl", ]
 ABAP = [".abap", ]
 "AGS Script" = [".ash", ]
 AMPL = [".ampl", ]
@@ -432,3 +435,6 @@ reStructuredText = [".rst", ".rest", ".rest.txt", ".rst.txt", ]
 wisp = [".wisp", ]
 xBase = [".prg", ".prw", ]
 
+[docs_blacklist_extensions]
+# Disable docs for these extensions of text files and scripts that are not programming languages of function, classes and methods
+docs_blacklist = ['sql', 'txt', 'yaml', 'json', 'xml', 'md', 'rst', 'rest', 'rest.txt', 'rst.txt', 'mdpolicy', 'mdown', 'markdown', 'mdwn', 'mkd', 'mkdn', 'mkdown', 'sh']
